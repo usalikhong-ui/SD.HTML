@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數獨遊戲 (航-第一版本)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            touch-action: manipulation; /* 防止雙擊縮放 */
+        }
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, minmax(0, 1fr));
+            grid-template-rows: repeat(9, minmax(0, 1fr));
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            border: 3px solid #1f2937;
+            border-radius: 8px;
+            background-color: #f3f4f6;
+        }
+        .sudoku-cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #d1d5db;
+            font-size: clamp(1rem, 5vw, 1.75rem);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        /* 強化 3x3 區域的邊框 */
+        .sudoku-cell:nth-child(3n) { border-right-width: 3px; border-right-color: #4b5563; }
+        .sudoku-cell:nth-child(9n) { border-right: 1px solid #d1d5db; }
+        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku-cell:nth-child(n+46):nth-child(-n+54) { border-bottom-width: 3px; border-bottom-color: #4b5563; }
+
+        .selected {
+            background-color: #60a5fa !important;
+            color: white;
+        }
+        .fixed-num {
+            font-weight: 700;
+            color: #111827;
+            background-color: #e5e7eb;
+        }
+        .user-num {
+             color: #1d4ed8;
+        }
+        .error-num {
+            color: #ef4444 !important;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .difficulty-btn.active {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <header class="text-center mb-4">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">數獨遊戲 <span class="text-base font-normal text-gray-400">(航-第一版本)</span></h1>
+            <p class="text-gray-500 mt-1">挑戰你的邏輯思維</p>
+        </header>
+
+        <!-- 難度選擇 -->
+        <div id="difficulty-selector" class="w-full flex flex-wrap justify-center gap-2 mb-4">
+            <button data-difficulty="beginner" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">新手</button>
+            <button data-difficulty="easy" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">簡單</button>
+            <button data-difficulty="normal" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition active">普通</button>
+            <button data-difficulty="hard" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">困難</button>
+            <button data-difficulty="expert" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">專家</button>
+        </div>
+
+        <!-- 遊戲控制項 -->
+        <div class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4">
+            <button id="new-game-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75">新遊戲</button>
+            <button id="hint-btn" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 flex items-center">
+                💡 提示 <span id="hint-count" class="ml-2 bg-white text-green-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
+            </button>
+            <button id="check-btn" class="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-75 flex items-center">
+                🔍 檢查 <span id="check-count" class="ml-2 bg-white text-orange-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
+            </button>
+            <button id="gm-btn" class="px-2 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75">GM</button>
+        </div>
+
+        <!-- 數獨棋盤 -->
+        <div id="sudoku-grid" class="sudoku-grid mx-auto shadow-inner"></div>
+
+        <!-- 數字選擇區 -->
+        <div id="number-pad" class="grid grid-cols-5 gap-2 mt-4"></div>
+        
+        <!-- 遊戲結束訊息彈窗 -->
+        <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-lg shadow-2xl text-center transform transition-all scale-95">
+                <h2 class="text-3xl font-bold text-yellow-500 mb-4">恭喜！</h2>
+                <p class="text-lg text-gray-700 mb-6">您已成功完成數獨！</p>
+                <button id="modal-new-game-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">再玩一局</button>
+            </div>
+        </div>
+
+        <!-- GM 密碼彈窗 -->
+        <div id="gm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white p-6 rounded-lg shadow-2xl text-center w-full max-w-sm">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">GM 驗證</h3>
+                <p class="text-gray-600 mb-4">請輸入密碼以啟用 GM 模式。</p>
+                <input type="password" id="gm-password-input" class="w-full px-3 py-2 border border-gray-300 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <p id="gm-error-msg" class="text-red-500 text-sm mb-4 h-5"></p> <!-- For error messages -->
+                <div class="flex justify-end gap-3">
+                    <button id="gm-cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">取消</button>
+                    <button id="gm-submit-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">確認</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM 元素
+            const grid = document.getElementById('sudoku-grid');
+            const numberPad = document.getElementById('number-pad');
+            const newGameBtn = document.getElementById('new-game-btn');
+            const hintBtn = document.getElementById('hint-btn');
+            const checkBtn = document.getElementById('check-btn');
+            const gmBtn = document.getElementById('gm-btn');
+            const hintCountSpan = document.getElementById('hint-count');
+            const checkCountSpan = document.getElementById('check-count');
+            const winModal = document.getElementById('win-modal');
+            const modalNewGameBtn = document.getElementById('modal-new-game-btn');
+            const difficultySelector = document.getElementById('difficulty-selector');
+            const gmModal = document.getElementById('gm-modal');
+            const gmPasswordInput = document.getElementById('gm-password-input');
+            const gmSubmitBtn = document.getElementById('gm-submit-btn');
+            const gmCancelBtn = document.getElementById('gm-cancel-btn');
+            const gmErrorMsg = document.getElementById('gm-error-msg');
+
+            // 遊戲狀態變數
+            let board;
+            let solution;
+            let initialBoard;
+            let selectedCell = null;
+            let hintCount = 3;
+            let checkCount = 3;
+            let gmModeActive = false; // GM 模式狀態
+
+            // 難度設定 (要挖掉的格子數量)
+            const difficultySettings = {
+                'beginner': 35,
+                'easy': 45,
+                'normal': 50,
+                'hard': 55,
+                'expert': 60
+            };
+            let currentDifficulty = 'normal';
+
+            // --- 數獨生成演算法 ---
+            function generateSudoku(attempts) {
+                const baseBoard = Array(9).fill(0).map(() => Array(9).fill(0));
+                
+                solve(baseBoard);
+                solution = JSON.parse(JSON.stringify(baseBoard));
+
+                let puzzle = JSON.parse(JSON.stringify(solution));
+                let removed = 0;
+                while (removed < attempts) {
+                    let row = Math.floor(Math.random() * 9);
+                    let col = Math.floor(Math.random() * 9);
+                    if (puzzle[row][col] !== 0) {
+                        puzzle[row][col] = 0;
+                        removed++;
+                    }
+                }
+                return { puzzle, solution };
+            }
+
+            function solve(board) {
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (board[r][c] === 0) {
+                            const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                            shuffle(nums);
+                            for (let num of nums) {
+                                if (isValid(board, r, c, num)) {
+                                    board[r][c] = num;
+                                    if (solve(board)) {
+                                        return true;
+                                    }
+                                    board[r][c] = 0;
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            function isValid(board, row, col, num) {
+                for (let i = 0; i < 9; i++) {
+                    if (board[row][i] === num || board[i][col] === num) return false;
+                }
+                const startRow = Math.floor(row / 3) * 3;
+                const startCol = Math.floor(col / 3) * 3;
+                for (let r = 0; r < 3; r++) {
+                    for (let c = 0; c < 3; c++) {
+                        if (board[startRow + r][startCol + c] === num) return false;
+                    }
+                }
+                return true;
+            }
+            
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            // --- 遊戲音效 ---
+            function playWinSound() {
+                const context = new (window.AudioContext || window.webkitAudioContext)();
+                if (!context) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                let startTime = context.currentTime;
+
+                notes.forEach((note, i) => {
+                    const oscillator = context.createOscillator();
+                    const gainNode = context.createGain();
+
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(note, startTime + i * 0.15);
+                    gainNode.gain.setValueAtTime(0.5, startTime + i * 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + i * 0.15 + 0.1);
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(context.destination);
+                    
+                    oscillator.start(startTime + i * 0.15);
+                    oscillator.stop(startTime + i * 0.15 + 0.12);
+                });
+            }
+
+            // --- 遊戲功能 ---
+            function newGame() {
+                const attempts = difficultySettings[currentDifficulty];
+                const { puzzle, solution: sol } = generateSudoku(attempts);
+                board = puzzle;
+                solution = sol;
+                initialBoard = JSON.parse(JSON.stringify(puzzle));
+                
+                gmModeActive = false;
+                gmBtn.textContent = "GM";
+                gmBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'px-4');
+                gmBtn.classList.add('bg-purple-600', 'hover:bg-purple-700', 'px-2');
+                
+                hintCount = 3;
+                checkCount = 3;
+                updateCounters();
+                renderBoard();
+                winModal.classList.add('hidden');
+            }
+
+            function renderBoard() {
+                grid.innerHTML = '';
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('sudoku-cell');
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+                        
+                        if (initialBoard[r][c] !== 0) {
+                            cell.textContent = initialBoard[r][c];
+                            cell.classList.add('fixed-num');
+                        } else {
+                            if (board[r][c] !== 0) {
+                                cell.textContent = board[r][c];
+                                cell.classList.add('user-num');
+                            }
+                            cell.addEventListener('click', handleCellClick);
+                        }
+                        grid.appendChild(cell);
+                    }
+                }
+            }
+
+            function renderNumberPad() {
+                numberPad.innerHTML = '';
+                for (let i = 1; i <= 9; i++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = "p-2 sm:p-3 text-lg sm:text-xl font-bold rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition";
+                    btn.addEventListener('click', () => handleNumberInput(i));
+                    numberPad.appendChild(btn);
+                }
+                const eraseBtn = document.createElement('button');
+                eraseBtn.innerHTML = '&#9003;';
+                eraseBtn.className = "p-2 sm:p-3 text-lg sm:text-xl font-bold rounded-md bg-red-200 hover:bg-red-300 text-red-800 transition";
+                eraseBtn.addEventListener('click', () => handleNumberInput(0));
+                numberPad.appendChild(eraseBtn);
+            }
+
+            function updateCounters() {
+                hintCountSpan.textContent = hintCount > 99 ? '∞' : hintCount;
+                checkCountSpan.textContent = checkCount > 99 ? '∞' : checkCount;
+                hintBtn.disabled = hintCount === 0;
+                checkBtn.disabled = checkCount === 0;
+                hintBtn.classList.toggle('opacity-50', hintCount === 0);
+                checkBtn.classList.toggle('opacity-50', checkCount === 0);
+            }
+            
+            // --- 事件處理 ---
+            function handleCellClick(event) {
+                if (selectedCell) {
+                    selectedCell.classList.remove('selected');
+                }
+                selectedCell = event.target;
+                selectedCell.classList.add('selected');
+            }
+
+            function handleNumberInput(num) {
+                if (!selectedCell) return;
+
+                const r = parseInt(selectedCell.dataset.row);
+                const c = parseInt(selectedCell.dataset.col);
+
+                if (initialBoard[r][c] === 0) {
+                    board[r][c] = num;
+                    selectedCell.textContent = num === 0 ? '' : num;
+                    selectedCell.classList.remove('error-num');
+                    selectedCell.classList.add('user-num');
+                    if (num === 0) {
+                        selectedCell.classList.remove('user-num');
+                    }
+                    checkWinCondition();
+                }
+            }
+
+            function useHint() {
+                if (hintCount <= 0) return;
+
+                let emptyCells = [];
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (board[r][c] === 0) {
+                            emptyCells.push({ r, c });
+                        }
+                    }
+                }
+
+                if (emptyCells.length > 0) {
+                    const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    const { r, c } = randomCell;
+                    board[r][c] = solution[r][c];
+                    initialBoard[r][c] = solution[r][c]; 
+                    
+                    if (!gmModeActive) hintCount--;
+                    updateCounters();
+                    renderBoard();
+                    checkWinCondition();
+                }
+            }
+
+            function useCheck() {
+                if (checkCount <= 0) return;
+
+                let incorrectCellFound = false;
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (board[r][c] !== 0 && initialBoard[r][c] === 0) {
+                            if (board[r][c] !== solution[r][c]) {
+                                const cellElement = grid.querySelector(`[data-row='${r}'][data-col='${c}']`);
+                                cellElement.classList.add('error-num');
+                                incorrectCellFound = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (incorrectCellFound) break;
+                }
+                
+                if (!gmModeActive) checkCount--;
+                updateCounters();
+
+                if (!incorrectCellFound) {
+                    const tempMsg = document.createElement('div');
+                    tempMsg.textContent = '目前沒有發現錯誤！';
+                    tempMsg.className = 'fixed top-5 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-500';
+                    document.body.appendChild(tempMsg);
+                    setTimeout(() => {
+                        tempMsg.classList.add('opacity-0');
+                        setTimeout(() => tempMsg.remove(), 500);
+                    }, 1500);
+                }
+            }
+
+            function checkWinCondition() {
+                for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (board[r][c] === 0 || board[r][c] !== solution[r][c]) {
+                            return false;
+                        }
+                    }
+                }
+                playWinSound();
+                winModal.classList.remove('hidden');
+                winModal.querySelector('div').classList.add('scale-100');
+            }
+
+            // --- 綁定事件監聽器 ---
+            newGameBtn.addEventListener('click', newGame);
+            modalNewGameBtn.addEventListener('click', newGame);
+            hintBtn.addEventListener('click', useHint);
+            checkBtn.addEventListener('click', useCheck);
+            
+            difficultySelector.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    currentDifficulty = e.target.dataset.difficulty;
+                    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    newGame();
+                }
+            });
+
+            // GM 按鈕邏輯
+            gmBtn.addEventListener('click', () => {
+                if (gmModeActive) {
+                    board = JSON.parse(JSON.stringify(solution));
+                    renderBoard();
+                    checkWinCondition();
+                } else {
+                    gmPasswordInput.value = '';
+                    gmErrorMsg.textContent = '';
+                    gmModal.classList.remove('hidden');
+                    gmPasswordInput.focus();
+                }
+            });
+
+            gmSubmitBtn.addEventListener('click', () => {
+                const password = gmPasswordInput.value;
+                if (password === "67712393") {
+                    gmModeActive = true;
+                    hintCount = 999;
+                    checkCount = 999;
+                    updateCounters();
+                    gmBtn.textContent = "一鍵勝利";
+                    gmBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'px-2');
+                    gmBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'px-4');
+                    gmModal.classList.add('hidden');
+                } else {
+                    gmErrorMsg.textContent = "密碼錯誤！";
+                    gmPasswordInput.value = '';
+                    gmPasswordInput.focus();
+                }
+            });
+
+            gmCancelBtn.addEventListener('click', () => {
+                gmModal.classList.add('hidden');
+});
+
+            gmModal.addEventListener('click', (e) => {
+                if (e.target === gmModal) {
+                    gmModal.classList.add('hidden');
+                }
+            });
+            
+            gmPasswordInput.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') {
+                    gmSubmitBtn.click();
+                }
+            });
+
+
+            // --- 遊戲初始化 ---
+            newGame();
+            renderNumberPad();
+        });
+    </script>
+</body>
+</html>
+
