@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數獨遊戲 (航-第一版本)</title>
+    <title>數獨遊戲 (航-第三版本)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -23,6 +23,7 @@
             background-color: #f3f4f6;
         }
         .sudoku-cell {
+            position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -51,6 +52,7 @@
         }
         .error-num {
             color: #ef4444 !important;
+            background-color: #fecaca !important;
             animation: shake 0.5s;
         }
         @keyframes shake {
@@ -58,7 +60,31 @@
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
-        .difficulty-btn.active {
+        
+        /* 筆記樣式 */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 1px;
+            pointer-events: none; /* 讓點擊事件穿透到下層 cell */
+        }
+        .note-num {
+            font-size: clamp(0.5rem, 1.5vw, 0.75rem);
+            color: #f97316;
+            text-align: center;
+            line-height: 1.1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 按鈕 active 狀態 */
+        .difficulty-btn.active, .control-btn.active {
             background-color: #2563eb;
             color: white;
             box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
@@ -68,7 +94,7 @@
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6">
         <header class="text-center mb-4">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">數獨遊戲 <span class="text-base font-normal text-gray-400">(航-第一版本)</span></h1>
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">數獨遊戲 <span class="text-base font-normal text-gray-400">(航-第三版本)</span></h1>
             <p class="text-gray-500 mt-1">挑戰你的邏輯思維</p>
         </header>
 
@@ -82,24 +108,32 @@
         </div>
 
         <!-- 遊戲控制項 -->
-        <div class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4">
-            <button id="new-game-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75">新遊戲</button>
-            <button id="hint-btn" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 flex items-center">
-                💡 提示 <span id="hint-count" class="ml-2 bg-white text-green-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
+        <div class="grid grid-cols-3 sm:flex sm:flex-wrap justify-center gap-2 sm:gap-4 mb-4">
+            <button id="new-game-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">新遊戲</button>
+            <button id="save-btn" class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">儲存</button>
+            <button id="load-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">讀取</button>
+            <button id="hint-btn" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 flex items-center justify-center">
+                💡<span class="hidden sm:inline ml-1">提示</span> <span id="hint-count" class="ml-2 bg-white text-green-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
             </button>
-            <button id="check-btn" class="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-75 flex items-center">
-                🔍 檢查 <span id="check-count" class="ml-2 bg-white text-orange-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
+            <button id="check-btn" class="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 flex items-center justify-center">
+                🔍<span class="hidden sm:inline ml-1">檢查</span> <span id="check-count" class="ml-2 bg-white text-orange-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
             </button>
-            <button id="gm-btn" class="px-2 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75">GM</button>
+            <button id="gm-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400">GM</button>
         </div>
 
         <!-- 數獨棋盤 -->
         <div id="sudoku-grid" class="sudoku-grid mx-auto shadow-inner"></div>
 
         <!-- 數字選擇區 -->
-        <div id="number-pad" class="grid grid-cols-5 gap-2 mt-4"></div>
+        <div id="number-pad" class="grid grid-cols-9 gap-2 mt-4"></div>
         
-        <!-- 遊戲結束訊息彈窗 -->
+        <!-- 筆記/清除按鈕 -->
+        <div class="flex justify-center items-stretch gap-2 mt-3">
+            <button id="notes-btn" class="control-btn w-1/2 py-2 sm:py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400">筆記</button>
+            <button id="erase-btn" class="w-1/2 py-2 sm:py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 text-xl sm:text-2xl flex items-center justify-center">&#9003;</button>
+        </div>
+        
+        <!-- MODALS (彈窗) -->
         <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white p-8 rounded-lg shadow-2xl text-center transform transition-all scale-95">
                 <h2 class="text-3xl font-bold text-yellow-500 mb-4">恭喜！</h2>
@@ -108,16 +142,26 @@
             </div>
         </div>
 
-        <!-- GM 密碼彈窗 -->
         <div id="gm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white p-6 rounded-lg shadow-2xl text-center w-full max-w-sm">
                 <h3 class="text-xl font-bold text-gray-800 mb-2">GM 驗證</h3>
                 <p class="text-gray-600 mb-4">請輸入密碼以啟用 GM 模式。</p>
                 <input type="password" id="gm-password-input" class="w-full px-3 py-2 border border-gray-300 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <p id="gm-error-msg" class="text-red-500 text-sm mb-4 h-5"></p> <!-- For error messages -->
+                <p id="gm-error-msg" class="text-red-500 text-sm mb-4 h-5"></p>
                 <div class="flex justify-end gap-3">
                     <button id="gm-cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">取消</button>
                     <button id="gm-submit-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">確認</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-sm">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">請確認</h3>
+                <p id="confirm-message" class="text-gray-600 mb-6">您確定嗎？</p>
+                <div class="flex justify-end gap-3">
+                    <button id="confirm-cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">取消</button>
+                    <button id="confirm-ok-btn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">確定</button>
                 </div>
             </div>
         </div>
@@ -132,89 +176,77 @@
             const hintBtn = document.getElementById('hint-btn');
             const checkBtn = document.getElementById('check-btn');
             const gmBtn = document.getElementById('gm-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const loadBtn = document.getElementById('load-btn');
+            const notesBtn = document.getElementById('notes-btn');
+            const eraseBtn = document.getElementById('erase-btn');
             const hintCountSpan = document.getElementById('hint-count');
             const checkCountSpan = document.getElementById('check-count');
+            const difficultySelector = document.getElementById('difficulty-selector');
+            // Modals
             const winModal = document.getElementById('win-modal');
             const modalNewGameBtn = document.getElementById('modal-new-game-btn');
-            const difficultySelector = document.getElementById('difficulty-selector');
             const gmModal = document.getElementById('gm-modal');
             const gmPasswordInput = document.getElementById('gm-password-input');
             const gmSubmitBtn = document.getElementById('gm-submit-btn');
             const gmCancelBtn = document.getElementById('gm-cancel-btn');
             const gmErrorMsg = document.getElementById('gm-error-msg');
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmMessage = document.getElementById('confirm-message');
+            const confirmOkBtn = document.getElementById('confirm-ok-btn');
+            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
 
             // 遊戲狀態變數
-            let board;
-            let solution;
-            let initialBoard;
+            let board, solution, initialBoard, notes;
             let selectedCell = null;
-            let hintCount = 3;
-            let checkCount = 3;
-            let gmModeActive = false; // GM 模式狀態
-
-            // 難度設定 (要挖掉的格子數量)
-            const difficultySettings = {
-                'beginner': 35,
-                'easy': 45,
-                'normal': 50,
-                'hard': 55,
-                'expert': 60
-            };
+            let hintCount = 3, checkCount = 3;
+            let gmModeActive = false, isNotesMode = false;
+            const difficultySettings = { 'beginner': 35, 'easy': 45, 'normal': 50, 'hard': 55, 'expert': 60 };
             let currentDifficulty = 'normal';
 
             // --- 數獨生成演算法 ---
             function generateSudoku(attempts) {
                 const baseBoard = Array(9).fill(0).map(() => Array(9).fill(0));
-                
                 solve(baseBoard);
-                solution = JSON.parse(JSON.stringify(baseBoard));
-
-                let puzzle = JSON.parse(JSON.stringify(solution));
+                const sol = JSON.parse(JSON.stringify(baseBoard));
+                let puzzle = JSON.parse(JSON.stringify(sol));
                 let removed = 0;
-                while (removed < attempts) {
-                    let row = Math.floor(Math.random() * 9);
-                    let col = Math.floor(Math.random() * 9);
-                    if (puzzle[row][col] !== 0) {
-                        puzzle[row][col] = 0;
+                const cells = Array.from({length: 81}, (_, i) => i);
+                shuffle(cells);
+
+                for(const cell of cells){
+                    if(removed >= attempts) break;
+                    const r = Math.floor(cell / 9), c = cell % 9;
+                    if (puzzle[r][c] !== 0) {
+                        puzzle[r][c] = 0;
                         removed++;
                     }
                 }
-                return { puzzle, solution };
+                return { puzzle, solution: sol };
             }
 
             function solve(board) {
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (board[r][c] === 0) {
-                            const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                            shuffle(nums);
-                            for (let num of nums) {
-                                if (isValid(board, r, c, num)) {
-                                    board[r][c] = num;
-                                    if (solve(board)) {
-                                        return true;
-                                    }
-                                    board[r][c] = 0;
-                                }
+                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+                    if (board[r][c] === 0) {
+                        const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                        shuffle(nums);
+                        for (let num of nums) {
+                            if (isValid(board, r, c, num)) {
+                                board[r][c] = num;
+                                if (solve(board)) return true;
+                                board[r][c] = 0;
                             }
-                            return false;
                         }
+                        return false;
                     }
                 }
                 return true;
             }
 
             function isValid(board, row, col, num) {
-                for (let i = 0; i < 9; i++) {
-                    if (board[row][i] === num || board[i][col] === num) return false;
-                }
-                const startRow = Math.floor(row / 3) * 3;
-                const startCol = Math.floor(col / 3) * 3;
-                for (let r = 0; r < 3; r++) {
-                    for (let c = 0; c < 3; c++) {
-                        if (board[startRow + r][startCol + c] === num) return false;
-                    }
-                }
+                for (let i = 0; i < 9; i++) if (board[row][i] === num || board[i][col] === num) return false;
+                const startRow = Math.floor(row / 3) * 3, startCol = Math.floor(col / 3) * 3;
+                for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) if (board[startRow + r][startCol + c] === num) return false;
                 return true;
             }
             
@@ -229,68 +261,77 @@
             function playWinSound() {
                 const context = new (window.AudioContext || window.webkitAudioContext)();
                 if (!context) return;
-
                 const notes = [523.25, 659.25, 783.99, 1046.50];
-                let startTime = context.currentTime;
-
                 notes.forEach((note, i) => {
-                    const oscillator = context.createOscillator();
-                    const gainNode = context.createGain();
-
+                    const oscillator = context.createOscillator(), gainNode = context.createGain();
                     oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(note, startTime + i * 0.15);
-                    gainNode.gain.setValueAtTime(0.5, startTime + i * 0.15);
-                    gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + i * 0.15 + 0.1);
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(context.destination);
-                    
-                    oscillator.start(startTime + i * 0.15);
-                    oscillator.stop(startTime + i * 0.15 + 0.12);
+                    oscillator.frequency.setValueAtTime(note, context.currentTime + i * 0.15);
+                    gainNode.gain.setValueAtTime(0.5, context.currentTime + i * 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + i * 0.15 + 0.1);
+                    oscillator.connect(gainNode); gainNode.connect(context.destination);
+                    oscillator.start(context.currentTime + i * 0.15);
+                    oscillator.stop(context.currentTime + i * 0.15 + 0.12);
                 });
             }
 
-            // --- 遊戲功能 ---
+            // --- 確認彈窗功能 ---
+            let confirmCallback = null;
+            function showConfirmModal(message, onConfirm) {
+                confirmMessage.textContent = message;
+                confirmCallback = onConfirm;
+                confirmModal.classList.remove('hidden');
+            }
+            const hideConfirmModal = () => {
+                confirmModal.classList.add('hidden');
+                confirmCallback = null;
+            };
+
+            // --- 遊戲核心功能 ---
             function newGame() {
-                const attempts = difficultySettings[currentDifficulty];
-                const { puzzle, solution: sol } = generateSudoku(attempts);
-                board = puzzle;
-                solution = sol;
+                const { puzzle, solution: sol } = generateSudoku(difficultySettings[currentDifficulty]);
+                board = puzzle; solution = sol;
                 initialBoard = JSON.parse(JSON.stringify(puzzle));
-                
+                notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
                 gmModeActive = false;
                 gmBtn.textContent = "GM";
                 gmBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'px-4');
-                gmBtn.classList.add('bg-purple-600', 'hover:bg-purple-700', 'px-2');
-                
-                hintCount = 3;
-                checkCount = 3;
-                updateCounters();
-                renderBoard();
+                gmBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                isNotesMode = false;
+                notesBtn.classList.remove('active');
+                notesBtn.textContent = '筆記';
+                hintCount = 3; checkCount = 3;
+                updateCounters(); renderBoard();
                 winModal.classList.add('hidden');
             }
 
             function renderBoard() {
                 grid.innerHTML = '';
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        const cell = document.createElement('div');
-                        cell.classList.add('sudoku-cell');
-                        cell.dataset.row = r;
-                        cell.dataset.col = c;
-                        
-                        if (initialBoard[r][c] !== 0) {
-                            cell.textContent = initialBoard[r][c];
-                            cell.classList.add('fixed-num');
+                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell';
+                    cell.dataset.row = r; cell.dataset.col = c;
+                    const isFixed = initialBoard[r][c] !== 0, hasUserNum = board[r][c] !== 0;
+                    if (isFixed) {
+                        cell.textContent = initialBoard[r][c];
+                        cell.classList.add('fixed-num');
+                    } else {
+                        if (hasUserNum) {
+                            cell.textContent = board[r][c];
+                            cell.classList.add('user-num');
                         } else {
-                            if (board[r][c] !== 0) {
-                                cell.textContent = board[r][c];
-                                cell.classList.add('user-num');
+                            const notesGrid = document.createElement('div');
+                            notesGrid.className = 'notes-grid';
+                            for (let i = 1; i <= 9; i++) {
+                                const noteSpan = document.createElement('span');
+                                noteSpan.className = 'note-num';
+                                if (notes[r][c].has(i)) noteSpan.textContent = i;
+                                notesGrid.appendChild(noteSpan);
                             }
-                            cell.addEventListener('click', handleCellClick);
+                            cell.appendChild(notesGrid);
                         }
-                        grid.appendChild(cell);
+                        cell.addEventListener('click', handleCellClick);
                     }
+                    grid.appendChild(cell);
                 }
             }
 
@@ -299,15 +340,10 @@
                 for (let i = 1; i <= 9; i++) {
                     const btn = document.createElement('button');
                     btn.textContent = i;
-                    btn.className = "p-2 sm:p-3 text-lg sm:text-xl font-bold rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition";
+                    btn.className = "p-2 text-lg sm:text-xl font-bold rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition aspect-square flex items-center justify-center";
                     btn.addEventListener('click', () => handleNumberInput(i));
                     numberPad.appendChild(btn);
                 }
-                const eraseBtn = document.createElement('button');
-                eraseBtn.innerHTML = '&#9003;';
-                eraseBtn.className = "p-2 sm:p-3 text-lg sm:text-xl font-bold rounded-md bg-red-200 hover:bg-red-300 text-red-800 transition";
-                eraseBtn.addEventListener('click', () => handleNumberInput(0));
-                numberPad.appendChild(eraseBtn);
             }
 
             function updateCounters() {
@@ -318,168 +354,163 @@
                 hintBtn.classList.toggle('opacity-50', hintCount === 0);
                 checkBtn.classList.toggle('opacity-50', checkCount === 0);
             }
+
+            function showToast(message, type = 'success') {
+                const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500'};
+                const toast = document.createElement('div');
+                toast.textContent = message;
+                toast.className = `fixed top-5 left-1/2 -translate-x-1/2 ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-500 z-50`;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                    setTimeout(() => toast.remove(), 500);
+                }, 2000);
+            }
             
             // --- 事件處理 ---
             function handleCellClick(event) {
-                if (selectedCell) {
-                    selectedCell.classList.remove('selected');
-                }
-                selectedCell = event.target;
+                if (selectedCell) selectedCell.classList.remove('selected');
+                selectedCell = event.currentTarget;
                 selectedCell.classList.add('selected');
             }
 
             function handleNumberInput(num) {
                 if (!selectedCell) return;
-
-                const r = parseInt(selectedCell.dataset.row);
-                const c = parseInt(selectedCell.dataset.col);
-
-                if (initialBoard[r][c] === 0) {
+                const r = parseInt(selectedCell.dataset.row), c = parseInt(selectedCell.dataset.col);
+                if (initialBoard[r][c] !== 0) return;
+                if (isNotesMode) {
+                    if (num === 0) notes[r][c].clear();
+                    else notes[r][c].has(num) ? notes[r][c].delete(num) : notes[r][c].add(num);
+                } else {
                     board[r][c] = num;
-                    selectedCell.textContent = num === 0 ? '' : num;
-                    selectedCell.classList.remove('error-num');
-                    selectedCell.classList.add('user-num');
-                    if (num === 0) {
-                        selectedCell.classList.remove('user-num');
-                    }
-                    checkWinCondition();
+                    notes[r][c].clear();
+                    if (num !== 0) checkWinCondition();
+                }
+                renderBoard();
+                const newSelectedCell = grid.querySelector(`[data-row='${r}'][data-col='${c}']`);
+                if (newSelectedCell) {
+                    selectedCell = newSelectedCell;
+                    selectedCell.classList.add('selected');
                 }
             }
 
             function useHint() {
                 if (hintCount <= 0) return;
-
                 let emptyCells = [];
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (board[r][c] === 0) {
-                            emptyCells.push({ r, c });
-                        }
-                    }
-                }
-
+                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (board[r][c] === 0) emptyCells.push({ r, c });
                 if (emptyCells.length > 0) {
-                    const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-                    const { r, c } = randomCell;
+                    const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
                     board[r][c] = solution[r][c];
-                    initialBoard[r][c] = solution[r][c]; 
-                    
+                    initialBoard[r][c] = solution[r][c];
+                    notes[r][c].clear();
                     if (!gmModeActive) hintCount--;
-                    updateCounters();
-                    renderBoard();
-                    checkWinCondition();
+                    updateCounters(); renderBoard(); checkWinCondition();
                 }
             }
 
             function useCheck() {
                 if (checkCount <= 0) return;
-
-                let incorrectCellFound = false;
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (board[r][c] !== 0 && initialBoard[r][c] === 0) {
-                            if (board[r][c] !== solution[r][c]) {
-                                const cellElement = grid.querySelector(`[data-row='${r}'][data-col='${c}']`);
-                                cellElement.classList.add('error-num');
-                                incorrectCellFound = true;
-                                break;
-                            }
-                        }
+                document.querySelectorAll('.sudoku-cell.error-num').forEach(cell => cell.classList.remove('error-num'));
+                let incorrectFound = false;
+                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+                    if (board[r][c] !== 0 && initialBoard[r][c] === 0 && board[r][c] !== solution[r][c]) {
+                        grid.querySelector(`[data-row='${r}'][data-col='${c}']`).classList.add('error-num');
+                        incorrectFound = true;
                     }
-                    if (incorrectCellFound) break;
                 }
-                
                 if (!gmModeActive) checkCount--;
                 updateCounters();
-
-                if (!incorrectCellFound) {
-                    const tempMsg = document.createElement('div');
-                    tempMsg.textContent = '目前沒有發現錯誤！';
-                    tempMsg.className = 'fixed top-5 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-500';
-                    document.body.appendChild(tempMsg);
-                    setTimeout(() => {
-                        tempMsg.classList.add('opacity-0');
-                        setTimeout(() => tempMsg.remove(), 500);
-                    }, 1500);
-                }
+                if (!incorrectFound) showToast('目前沒有發現錯誤！', 'success');
             }
 
             function checkWinCondition() {
-                for (let r = 0; r < 9; r++) {
-                    for (let c = 0; c < 9; c++) {
-                        if (board[r][c] === 0 || board[r][c] !== solution[r][c]) {
-                            return false;
-                        }
-                    }
-                }
+                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (board[r][c] === 0 || board[r][c] !== solution[r][c]) return false;
                 playWinSound();
                 winModal.classList.remove('hidden');
                 winModal.querySelector('div').classList.add('scale-100');
             }
+            
+            function handleSave() {
+                const notesForSaving = notes.map(row => row.map(cellNotesSet => Array.from(cellNotesSet)));
+                const gameState = { board, solution, initialBoard, notes: notesForSaving, hintCount, checkCount, currentDifficulty, gmModeActive };
+                localStorage.setItem('sudokuSaveData', JSON.stringify(gameState));
+                showToast('遊戲已儲存！', 'info');
+            }
+
+            function handleLoad() {
+                const savedData = localStorage.getItem('sudokuSaveData');
+                if (savedData) {
+                    const loadedData = JSON.parse(savedData);
+                    Object.assign(window, { ...loadedData });
+                    notes = loadedData.notes.map(row => row.map(cellNotesArray => new Set(cellNotesArray)));
+                    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.difficulty === currentDifficulty));
+                    if(gmModeActive) {
+                        gmBtn.textContent = "一鍵勝利";
+                        gmBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'px-4');
+                    }
+                    updateCounters(); renderBoard();
+                    showToast('遊戲已讀取！', 'info');
+                } else { showToast('找不到儲存的遊戲。', 'error'); }
+            }
 
             // --- 綁定事件監聽器 ---
-            newGameBtn.addEventListener('click', newGame);
+            newGameBtn.addEventListener('click', () => showConfirmModal('您確定要開始新遊戲嗎？目前的進度將會遺失。', newGame));
             modalNewGameBtn.addEventListener('click', newGame);
             hintBtn.addEventListener('click', useHint);
             checkBtn.addEventListener('click', useCheck);
-            
+            saveBtn.addEventListener('click', handleSave);
+            loadBtn.addEventListener('click', () => {
+                 if (localStorage.getItem('sudokuSaveData')) showConfirmModal('確定要讀取上次儲存的遊戲嗎？目前的進度將會遺失。', handleLoad);
+                 else showToast('找不到儲存的遊戲。', 'error');
+            });
+            notesBtn.addEventListener('click', () => {
+                isNotesMode = !isNotesMode;
+                notesBtn.classList.toggle('active');
+                notesBtn.textContent = isNotesMode ? '筆記中...' : '筆記';
+            });
+            eraseBtn.addEventListener('click', () => handleNumberInput(0));
+            confirmOkBtn.addEventListener('click', () => { if (typeof confirmCallback === 'function') confirmCallback(); hideConfirmModal(); });
+            confirmCancelBtn.addEventListener('click', hideConfirmModal);
+            confirmModal.addEventListener('click', (e) => { if(e.target === confirmModal) hideConfirmModal(); });
+
             difficultySelector.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') {
-                    currentDifficulty = e.target.dataset.difficulty;
-                    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
-                    e.target.classList.add('active');
-                    newGame();
+                    const selectedDifficulty = e.target.dataset.difficulty;
+                    if (selectedDifficulty !== currentDifficulty) {
+                         const difficultyText = e.target.textContent;
+                         showConfirmModal(`您確定要切換到「${difficultyText}」難度並開始新遊戲嗎？`, () => {
+                            currentDifficulty = selectedDifficulty;
+                            document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+                            e.target.classList.add('active');
+                            newGame();
+                        });
+                    }
                 }
             });
 
-            // GM 按鈕邏輯
             gmBtn.addEventListener('click', () => {
                 if (gmModeActive) {
                     board = JSON.parse(JSON.stringify(solution));
-                    renderBoard();
-                    checkWinCondition();
+                    renderBoard(); checkWinCondition();
                 } else {
-                    gmPasswordInput.value = '';
-                    gmErrorMsg.textContent = '';
-                    gmModal.classList.remove('hidden');
-                    gmPasswordInput.focus();
+                    gmPasswordInput.value = ''; gmErrorMsg.textContent = '';
+                    gmModal.classList.remove('hidden'); gmPasswordInput.focus();
                 }
             });
-
             gmSubmitBtn.addEventListener('click', () => {
-                const password = gmPasswordInput.value;
-                if (password === "67712393") {
-                    gmModeActive = true;
-                    hintCount = 999;
-                    checkCount = 999;
-                    updateCounters();
+                if (gmPasswordInput.value === "67712393") {
+                    gmModeActive = true; hintCount = 999; checkCount = 999; updateCounters();
                     gmBtn.textContent = "一鍵勝利";
-                    gmBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'px-2');
+                    gmBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
                     gmBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'px-4');
                     gmModal.classList.add('hidden');
                 } else {
-                    gmErrorMsg.textContent = "密碼錯誤！";
-                    gmPasswordInput.value = '';
-                    gmPasswordInput.focus();
+                    gmErrorMsg.textContent = "密碼錯誤！"; gmPasswordInput.value = ''; gmPasswordInput.focus();
                 }
             });
-
-            gmCancelBtn.addEventListener('click', () => {
-                gmModal.classList.add('hidden');
-});
-
-            gmModal.addEventListener('click', (e) => {
-                if (e.target === gmModal) {
-                    gmModal.classList.add('hidden');
-                }
-            });
-            
-            gmPasswordInput.addEventListener('keydown', (e) => {
-                if(e.key === 'Enter') {
-                    gmSubmitBtn.click();
-                }
-            });
-
+            gmCancelBtn.addEventListener('click', () => gmModal.classList.add('hidden'));
+            gmModal.addEventListener('click', (e) => { if (e.target === gmModal) gmModal.classList.add('hidden'); });
+            gmPasswordInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') gmSubmitBtn.click(); });
 
             // --- 遊戲初始化 ---
             newGame();
@@ -488,4 +519,5 @@
     </script>
 </body>
 </html>
+
 
