@@ -1,523 +1,375 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數獨遊戲 (航-第三版本)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>2026 名古屋高山雪國之旅行程表</title>
     <style>
         body {
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
-            touch-action: manipulation; /* 防止雙擊縮放 */
-        }
-        .sudoku-grid {
-            display: grid;
-            grid-template-columns: repeat(9, minmax(0, 1fr));
-            grid-template-rows: repeat(9, minmax(0, 1fr));
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            line-height: 1.5;
+            color: #333;
             width: 100%;
-            max-width: 500px;
-            aspect-ratio: 1 / 1;
-            border: 3px solid #1f2937;
-            border-radius: 8px;
-            background-color: #f3f4f6;
+            max-width: 210mm; /* A4 寬度 */
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-sizing: border-box;
         }
-        .sudoku-cell {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 1px solid #d1d5db;
-            font-size: clamp(1rem, 5vw, 1.75rem);
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 10px;
+            font-size: 24px;
         }
-        /* 強化 3x3 區域的邊框 */
-        .sudoku-cell:nth-child(3n) { border-right-width: 3px; border-right-color: #4b5563; }
-        .sudoku-cell:nth-child(9n) { border-right: 1px solid #d1d5db; }
-        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
-        .sudoku-cell:nth-child(n+46):nth-child(-n+54) { border-bottom-width: 3px; border-bottom-color: #4b5563; }
-
-        .selected {
-            background-color: #60a5fa !important;
+        .header-info {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        h2 {
+            background-color: #f0f0f0;
+            padding: 8px 10px;
+            border-left: 5px solid #c0392b;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            color: #c0392b;
+            font-size: 18px;
+        }
+        .day-summary {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #444;
+            padding-left: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #2c3e50;
             color: white;
+            width: 15%; /* 稍微調整手機顯示 */
+            white-space: nowrap;
         }
-        .fixed-num {
-            font-weight: 700;
-            color: #111827;
-            background-color: #e5e7eb;
+        td.content {
+            width: 25%;
+            font-weight: bold;
         }
-        .user-num {
-             color: #1d4ed8;
+        td.details {
+            width: 60%;
         }
-        .error-num {
-            color: #ef4444 !important;
-            background-color: #fecaca !important;
-            animation: shake 0.5s;
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
         }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+        .address {
+            font-size: 11px;
+            color: #666;
+            display: block;
+            margin-top: 4px;
+        }
+        .note-box {
+            border: 2px dashed #aaa;
+            padding: 15px;
+            margin-top: 30px;
+            background-color: #fafafa;
+        }
+        .note-box h3 {
+            margin-top: 0;
+            font-size: 16px;
         }
         
-        /* 筆記樣式 */
-        .notes-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            padding: 1px;
-            pointer-events: none; /* 讓點擊事件穿透到下層 cell */
-        }
-        .note-num {
-            font-size: clamp(0.5rem, 1.5vw, 0.75rem);
-            color: #f97316;
-            text-align: center;
-            line-height: 1.1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* 手機響應式調整 */
+        @media screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            th, td {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            th {
+                text-align: center;
+                background-color: #2c3e50;
+                margin-top: 10px;
+            }
+            tr {
+                margin-bottom: 15px;
+                display: block;
+                border: 1px solid #ccc;
+            }
+            td {
+                border: none;
+                border-bottom: 1px solid #eee;
+            }
         }
 
-        /* 按鈕 active 狀態 */
-        .difficulty-btn.active, .control-btn.active {
-            background-color: #2563eb;
-            color: white;
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        @media print {
+            body { margin: 0; padding: 10px; width: 100%; max-width: none; }
+            h2 { page-break-before: auto; }
+            .no-break { page-break-inside: avoid; }
+            /* 列印時強制顯示表格線條 */
+            th, td { border: 1px solid #000; }
         }
     </style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-        <header class="text-center mb-4">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">數獨遊戲 <span class="text-base font-normal text-gray-400">(航-第三版本)</span></h1>
-            <p class="text-gray-500 mt-1">挑戰你的邏輯思維</p>
-        </header>
+<body>
 
-        <!-- 難度選擇 -->
-        <div id="difficulty-selector" class="w-full flex flex-wrap justify-center gap-2 mb-4">
-            <button data-difficulty="beginner" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">新手</button>
-            <button data-difficulty="easy" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">簡單</button>
-            <button data-difficulty="normal" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition active">普通</button>
-            <button data-difficulty="hard" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">困難</button>
-            <button data-difficulty="expert" class="difficulty-btn px-3 py-1 text-sm sm:text-base rounded-md font-medium bg-gray-200 hover:bg-gray-300 transition">專家</button>
-        </div>
-
-        <!-- 遊戲控制項 -->
-        <div class="grid grid-cols-3 sm:flex sm:flex-wrap justify-center gap-2 sm:gap-4 mb-4">
-            <button id="new-game-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">新遊戲</button>
-            <button id="save-btn" class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">儲存</button>
-            <button id="load-btn" class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">讀取</button>
-            <button id="hint-btn" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 flex items-center justify-center">
-                💡<span class="hidden sm:inline ml-1">提示</span> <span id="hint-count" class="ml-2 bg-white text-green-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
-            </button>
-            <button id="check-btn" class="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 flex items-center justify-center">
-                🔍<span class="hidden sm:inline ml-1">檢查</span> <span id="check-count" class="ml-2 bg-white text-orange-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
-            </button>
-            <button id="gm-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400">GM</button>
-        </div>
-
-        <!-- 數獨棋盤 -->
-        <div id="sudoku-grid" class="sudoku-grid mx-auto shadow-inner"></div>
-
-        <!-- 數字選擇區 -->
-        <div id="number-pad" class="grid grid-cols-9 gap-2 mt-4"></div>
-        
-        <!-- 筆記/清除按鈕 -->
-        <div class="flex justify-center items-stretch gap-2 mt-3">
-            <button id="notes-btn" class="control-btn w-1/2 py-2 sm:py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400">筆記</button>
-            <button id="erase-btn" class="w-1/2 py-2 sm:py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 text-xl sm:text-2xl flex items-center justify-center">&#9003;</button>
-        </div>
-        
-        <!-- MODALS (彈窗) -->
-        <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white p-8 rounded-lg shadow-2xl text-center transform transition-all scale-95">
-                <h2 class="text-3xl font-bold text-yellow-500 mb-4">恭喜！</h2>
-                <p class="text-lg text-gray-700 mb-6">您已成功完成數獨！</p>
-                <button id="modal-new-game-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">再玩一局</button>
-            </div>
-        </div>
-
-        <div id="gm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white p-6 rounded-lg shadow-2xl text-center w-full max-w-sm">
-                <h3 class="text-xl font-bold text-gray-800 mb-2">GM 驗證</h3>
-                <p class="text-gray-600 mb-4">請輸入密碼以啟用 GM 模式。</p>
-                <input type="password" id="gm-password-input" class="w-full px-3 py-2 border border-gray-300 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <p id="gm-error-msg" class="text-red-500 text-sm mb-4 h-5"></p>
-                <div class="flex justify-end gap-3">
-                    <button id="gm-cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">取消</button>
-                    <button id="gm-submit-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">確認</button>
-                </div>
-            </div>
-        </div>
-        
-        <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-sm">
-                <h3 class="text-xl font-bold text-gray-800 mb-2">請確認</h3>
-                <p id="confirm-message" class="text-gray-600 mb-6">您確定嗎？</p>
-                <div class="flex justify-end gap-3">
-                    <button id="confirm-cancel-btn" class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400">取消</button>
-                    <button id="confirm-ok-btn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">確定</button>
-                </div>
-            </div>
-        </div>
+    <h1>📋 2026 名古屋高山雪國之旅 (Final Confirmed)</h1>
+    <div class="header-info">
+        <strong>日期：</strong> 2026/01/01 (四) – 01/05 (一) &nbsp;|&nbsp; 
+        <strong>重點：</strong> 關鍵交通已預約鎖定，只需跟隨時間表出發
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // DOM 元素
-            const grid = document.getElementById('sudoku-grid');
-            const numberPad = document.getElementById('number-pad');
-            const newGameBtn = document.getElementById('new-game-btn');
-            const hintBtn = document.getElementById('hint-btn');
-            const checkBtn = document.getElementById('check-btn');
-            const gmBtn = document.getElementById('gm-btn');
-            const saveBtn = document.getElementById('save-btn');
-            const loadBtn = document.getElementById('load-btn');
-            const notesBtn = document.getElementById('notes-btn');
-            const eraseBtn = document.getElementById('erase-btn');
-            const hintCountSpan = document.getElementById('hint-count');
-            const checkCountSpan = document.getElementById('check-count');
-            const difficultySelector = document.getElementById('difficulty-selector');
-            // Modals
-            const winModal = document.getElementById('win-modal');
-            const modalNewGameBtn = document.getElementById('modal-new-game-btn');
-            const gmModal = document.getElementById('gm-modal');
-            const gmPasswordInput = document.getElementById('gm-password-input');
-            const gmSubmitBtn = document.getElementById('gm-submit-btn');
-            const gmCancelBtn = document.getElementById('gm-cancel-btn');
-            const gmErrorMsg = document.getElementById('gm-error-msg');
-            const confirmModal = document.getElementById('confirm-modal');
-            const confirmMessage = document.getElementById('confirm-message');
-            const confirmOkBtn = document.getElementById('confirm-ok-btn');
-            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+    <div class="no-break">
+        <h2>🗓️ DAY 1｜1月1日 (四)｜抵達與補給</h2>
+        <div class="day-summary">今日重點：順利由機場抵達名古屋市區，Check-in 後簡單晚餐。</div>
+        <table>
+            <tr>
+                <th>時間</th>
+                <th>行程內容</th>
+                <th>地點 / 交通詳情 / 備註</th>
+            </tr>
+            <tr>
+                <td>15:35</td>
+                <td class="content">香港起飛</td>
+                <td>UO684</td>
+            </tr>
+            <tr>
+                <td>20:05</td>
+                <td class="content">抵達名古屋</td>
+                <td><strong>中部國際機場 T2</strong> (入境預算約 1 小時)</td>
+            </tr>
+            <tr>
+                <td>21:07</td>
+                <td class="content">搭機場快線</td>
+                <td><strong>名鐵 μ-SKY (特急)</strong><br>機場 → 名鐵名古屋站 | <span class="highlight">全車指定席</span></td>
+            </tr>
+            <tr>
+                <td>22:00</td>
+                <td class="content">前往酒店</td>
+                <td><strong>的士 (Taxi)</strong> 前往：ホテル京阪 名古屋<br>車費約 ¥1,000</td>
+            </tr>
+            <tr>
+                <td>22:30</td>
+                <td class="content">Check-in<br>晚餐</td>
+                <td><strong>一蘭拉麵 名古屋錦店 (24H)</strong><br>
+                <span class="address">〒460-0003 愛知県名古屋市中区錦3-22-7</span>
+                (新年很多店關門，連鎖店最穩陣)</td>
+            </tr>
+        </table>
+    </div>
 
-            // 遊戲狀態變數
-            let board, solution, initialBoard, notes;
-            let selectedCell = null;
-            let hintCount = 3, checkCount = 3;
-            let gmModeActive = false, isNotesMode = false;
-            const difficultySettings = { 'beginner': 35, 'easy': 45, 'normal': 50, 'hard': 55, 'expert': 60 };
-            let currentDifficulty = 'normal';
+    <div class="no-break">
+        <h2>🗓️ DAY 2｜1月2日 (五)｜名古屋市內觀光</h2>
+        <div class="day-summary">今日重點：避開名古屋站人潮，去大須同榮區行街。</div>
+        <table>
+            <tr>
+                <th>時間</th>
+                <th>行程內容</th>
+                <th>地點 / 交通詳情 / 備註</th>
+            </tr>
+            <tr>
+                <td>09:00</td>
+                <td class="content">早餐</td>
+                <td><strong>Komeda's Coffee</strong> (點飲料送吐司)<br><span class="address">錦・伊勢町通店 (酒店步行3分鐘)</span></td>
+            </tr>
+            <tr>
+                <td>10:30</td>
+                <td class="content">逛街</td>
+                <td><strong>大須商店街 / 大須觀音</strong><br>地鐵：久屋大通 → 上前津</td>
+            </tr>
+            <tr>
+                <td>13:00</td>
+                <td class="content">午餐</td>
+                <td><strong>矢場味增豬排 (矢場とん)</strong><br>大須或矢場町本店 (名古屋必吃)</td>
+            </tr>
+            <tr>
+                <td>15:00</td>
+                <td class="content">購物</td>
+                <td><strong>榮 (Sakae) 商圈</strong> (Parco, Donki, Loft)</td>
+            </tr>
+            <tr>
+                <td>18:00</td>
+                <td class="content">晚餐</td>
+                <td><strong>鳥開 總本家 (榮區)</strong><br>親子丼、手羽先</td>
+            </tr>
+            <tr>
+                <td>20:00</td>
+                <td class="content">超市採購</td>
+                <td><strong>成城石井 (榮 Central Park)</strong><br><span class="highlight">重要：</span> 買定聽日火車上食既零食同飲品</td>
+            </tr>
+        </table>
+    </div>
 
-            // --- 數獨生成演算法 ---
-            function generateSudoku(attempts) {
-                const baseBoard = Array(9).fill(0).map(() => Array(9).fill(0));
-                solve(baseBoard);
-                const sol = JSON.parse(JSON.stringify(baseBoard));
-                let puzzle = JSON.parse(JSON.stringify(sol));
-                let removed = 0;
-                const cells = Array.from({length: 81}, (_, i) => i);
-                shuffle(cells);
+    <div class="no-break">
+        <h2>🗓️ DAY 3｜1月3日 (六)｜移動日：搭火車去雪國</h2>
+        <div class="day-summary">今日重點：(已確認車票) 準時搭 JR Hida 特急，享受寬窗雪景。</div>
+        <table>
+            <tr>
+                <th>時間</th>
+                <th>行程內容</th>
+                <th>地點 / 交通詳情 / 備註</th>
+            </tr>
+            <tr>
+                <td>09:30</td>
+                <td class="content">Check-out</td>
+                <td>酒店門口搭的士去 JR 名古屋站 (預留時間搵月台)</td>
+            </tr>
+            <tr>
+                <td>10:48</td>
+                <td class="content">🚅 火車出發</td>
+                <td><strong>JR 特急 Hida 7號</strong><br>名古屋(Nagoya) → 高山(Takayama)<br><span class="highlight">座位：2號車 10C, 10D</span><br>車程約 2小時24分 (請 10:30 前抵達月台)</td>
+            </tr>
+            <tr>
+                <td>13:12</td>
+                <td class="content">抵達高山</td>
+                <td>JR 高山站 (出閘後去西口搵酒店 Shuttle)</td>
+            </tr>
+            <tr>
+                <td>13:40</td>
+                <td class="content">Check-in</td>
+                <td><strong>Hotel Associa Takayama Resort</strong><br>位於山上 (先寄放行李)</td>
+            </tr>
+            <tr>
+                <td>14:30</td>
+                <td class="content">逛老街</td>
+                <td><strong>高山老街 (三之町)</strong><br>搭酒店車回車站，步行10分鐘</td>
+            </tr>
+            <tr>
+                <td>18:00</td>
+                <td class="content">晚餐</td>
+                <td><strong>味蔵天國 (Ajikura Tengoku)</strong><br>車站旁飛驒牛燒肉 <span class="highlight">(強烈建議提早訂位)</span></td>
+            </tr>
+            <tr>
+                <td>20:00</td>
+                <td class="content">溫泉</td>
+                <td>酒店內露天風呂 (享受雪見溫泉)</td>
+            </tr>
+        </table>
+    </div>
 
-                for(const cell of cells){
-                    if(removed >= attempts) break;
-                    const r = Math.floor(cell / 9), c = cell % 9;
-                    if (puzzle[r][c] !== 0) {
-                        puzzle[r][c] = 0;
-                        removed++;
-                    }
-                }
-                return { puzzle, solution: sol };
-            }
+    <div class="no-break">
+        <h2>🗓️ DAY 4｜1月4日 (日)｜白川鄉一日遊 (輕裝)</h2>
+        <div class="day-summary">今日重點：(已確認車票) 行李放酒店，輕裝上陣。</div>
+        <table>
+            <tr>
+                <th>時間</th>
+                <th>行程內容</th>
+                <th>地點 / 交通詳情 / 備註</th>
+            </tr>
+            <tr>
+                <td>07:40</td>
+                <td class="content">出發</td>
+                <td>搭酒店 Shuttle 或的士去車站 (提早排隊)</td>
+            </tr>
+            <tr>
+                <td>08:10</td>
+                <td class="content">🚌 巴士去程</td>
+                <td><strong>濃飛巴士 (Nohi Bus)</strong><br>Takayama BC → Shirakawa-go<br><span class="highlight">座位：1號車 8A, 8B</span><br>訂單號：12112044171</td>
+            </tr>
+            <tr>
+                <td>09:00</td>
+                <td class="content">抵達白川鄉</td>
+                <td>白川鄉巴士總站 (趁人少先去展望台)</td>
+            </tr>
+            <tr>
+                <td>09:30</td>
+                <td class="content">景點</td>
+                <td><strong>城山展望台</strong> (搭接駁巴士上去)</td>
+            </tr>
+            <tr>
+                <td>11:30</td>
+                <td class="content">午餐</td>
+                <td><strong>手打蕎麥麵 乃むら</strong> (建議提早食避人潮)</td>
+            </tr>
+            <tr>
+                <td>13:30</td>
+                <td class="content">休息/參觀</td>
+                <td><strong>落人 (Ochiudo) 咖啡店</strong> 或 和田家<br>注意保暖，唔好一直係室外吹風</td>
+            </tr>
+            <tr>
+                <td>15:45</td>
+                <td class="content">🚌 巴士回程</td>
+                <td><strong>濃飛巴士 (Nohi Bus)</strong><br>Shirakawa-go → Takayama BC<br><span class="highlight">座位：1號車 8A, 8B</span><br>訂單號：12112044231</td>
+            </tr>
+            <tr>
+                <td>18:00</td>
+                <td class="content">晚餐</td>
+                <td><strong>麵屋 Shirakawa (高山拉麵)</strong><br><span class="address">〒506-0025 岐阜県高山市相生町56-2</span></td>
+            </tr>
+        </table>
+    </div>
 
-            function solve(board) {
-                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
-                    if (board[r][c] === 0) {
-                        const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                        shuffle(nums);
-                        for (let num of nums) {
-                            if (isValid(board, r, c, num)) {
-                                board[r][c] = num;
-                                if (solve(board)) return true;
-                                board[r][c] = 0;
-                            }
-                        }
-                        return false;
-                    }
-                }
-                return true;
-            }
+    <div class="no-break">
+        <h2>🗓️ DAY 5｜1月5日 (一)｜宮川朝市 & 回程</h2>
+        <div class="day-summary">今日重點：(已確認車票) 最後衝刺，搭 JR 直達名古屋轉機。</div>
+        <table>
+            <tr>
+                <th>時間</th>
+                <th>行程內容</th>
+                <th>地點 / 交通詳情 / 備註</th>
+            </tr>
+            <tr>
+                <td>08:30</td>
+                <td class="content">Check-out</td>
+                <td>帶行李搭 Shuttle 落山，將行李寄存在車站 Locker</td>
+            </tr>
+            <tr>
+                <td>09:00</td>
+                <td class="content">市集</td>
+                <td><strong>宮川朝市</strong> (沿住河邊行，買蘋果/工藝品)</td>
+            </tr>
+            <tr>
+                <td>11:35</td>
+                <td class="content">🚅 火車回程</td>
+                <td><strong>JR 特急 Hida 8號</strong><br>高山(Takayama) → 名古屋(Nagoya)<br><span class="highlight">座位：7號車 7C, 7D</span><br>請於 11:20 前抵達月台</td>
+            </tr>
+            <tr>
+                <td>14:04</td>
+                <td class="content">抵達名古屋</td>
+                <td>JR 名古屋站 (最後購物：高島屋 B1 / 千里馬藥妝)</td>
+            </tr>
+            <tr>
+                <td>16:30</td>
+                <td class="content">前往機場</td>
+                <td>搭乘名鐵 μ-SKY (約 28 分鐘)</td>
+            </tr>
+            <tr>
+                <td>17:30</td>
+                <td class="content">晚餐/參觀</td>
+                <td><strong>Flight of Dreams (T2)</strong> (波音 787 展示館)</td>
+            </tr>
+            <tr>
+                <td>21:00</td>
+                <td class="content">起飛回港</td>
+                <td><strong>UO685</strong> (平安回家)</td>
+            </tr>
+        </table>
+    </div>
 
-            function isValid(board, row, col, num) {
-                for (let i = 0; i < 9; i++) if (board[row][i] === num || board[i][col] === num) return false;
-                const startRow = Math.floor(row / 3) * 3, startCol = Math.floor(col / 3) * 3;
-                for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) if (board[startRow + r][startCol + c] === num) return false;
-                return true;
-            }
-            
-            function shuffle(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-            }
+    <div class="note-box">
+        <h3>💡 實用小貼士 (Based on your tickets)</h3>
+        <ul>
+            <li><strong>車票備份：</strong> 建議將車票截圖儲存在手機相簿 "Japan 2026 Ticket"，方便隨時查閱。</li>
+            <li><strong>JR 火車：</strong> 建議抵達日本後，去綠色機器領取實體票做紀念兼保險。Hida 特急較搖晃，如有需要請預備暈車藥。</li>
+            <li><strong>白川鄉：</strong> Day 4 在白川鄉停留時間較長 (約 6.5 小時)，天氣寒冷，建議安排咖啡店休息或去「白川鄉之湯」浸腳。</li>
+        </ul>
+    </div>
 
-            // --- 遊戲音效 ---
-            function playWinSound() {
-                const context = new (window.AudioContext || window.webkitAudioContext)();
-                if (!context) return;
-                const notes = [523.25, 659.25, 783.99, 1046.50];
-                notes.forEach((note, i) => {
-                    const oscillator = context.createOscillator(), gainNode = context.createGain();
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(note, context.currentTime + i * 0.15);
-                    gainNode.gain.setValueAtTime(0.5, context.currentTime + i * 0.15);
-                    gainNode.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + i * 0.15 + 0.1);
-                    oscillator.connect(gainNode); gainNode.connect(context.destination);
-                    oscillator.start(context.currentTime + i * 0.15);
-                    oscillator.stop(context.currentTime + i * 0.15 + 0.12);
-                });
-            }
-
-            // --- 確認彈窗功能 ---
-            let confirmCallback = null;
-            function showConfirmModal(message, onConfirm) {
-                confirmMessage.textContent = message;
-                confirmCallback = onConfirm;
-                confirmModal.classList.remove('hidden');
-            }
-            const hideConfirmModal = () => {
-                confirmModal.classList.add('hidden');
-                confirmCallback = null;
-            };
-
-            // --- 遊戲核心功能 ---
-            function newGame() {
-                const { puzzle, solution: sol } = generateSudoku(difficultySettings[currentDifficulty]);
-                board = puzzle; solution = sol;
-                initialBoard = JSON.parse(JSON.stringify(puzzle));
-                notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
-                gmModeActive = false;
-                gmBtn.textContent = "GM";
-                gmBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'px-4');
-                gmBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
-                isNotesMode = false;
-                notesBtn.classList.remove('active');
-                notesBtn.textContent = '筆記';
-                hintCount = 3; checkCount = 3;
-                updateCounters(); renderBoard();
-                winModal.classList.add('hidden');
-            }
-
-            function renderBoard() {
-                grid.innerHTML = '';
-                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'sudoku-cell';
-                    cell.dataset.row = r; cell.dataset.col = c;
-                    const isFixed = initialBoard[r][c] !== 0, hasUserNum = board[r][c] !== 0;
-                    if (isFixed) {
-                        cell.textContent = initialBoard[r][c];
-                        cell.classList.add('fixed-num');
-                    } else {
-                        if (hasUserNum) {
-                            cell.textContent = board[r][c];
-                            cell.classList.add('user-num');
-                        } else {
-                            const notesGrid = document.createElement('div');
-                            notesGrid.className = 'notes-grid';
-                            for (let i = 1; i <= 9; i++) {
-                                const noteSpan = document.createElement('span');
-                                noteSpan.className = 'note-num';
-                                if (notes[r][c].has(i)) noteSpan.textContent = i;
-                                notesGrid.appendChild(noteSpan);
-                            }
-                            cell.appendChild(notesGrid);
-                        }
-                        cell.addEventListener('click', handleCellClick);
-                    }
-                    grid.appendChild(cell);
-                }
-            }
-
-            function renderNumberPad() {
-                numberPad.innerHTML = '';
-                for (let i = 1; i <= 9; i++) {
-                    const btn = document.createElement('button');
-                    btn.textContent = i;
-                    btn.className = "p-2 text-lg sm:text-xl font-bold rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition aspect-square flex items-center justify-center";
-                    btn.addEventListener('click', () => handleNumberInput(i));
-                    numberPad.appendChild(btn);
-                }
-            }
-
-            function updateCounters() {
-                hintCountSpan.textContent = hintCount > 99 ? '∞' : hintCount;
-                checkCountSpan.textContent = checkCount > 99 ? '∞' : checkCount;
-                hintBtn.disabled = hintCount === 0;
-                checkBtn.disabled = checkCount === 0;
-                hintBtn.classList.toggle('opacity-50', hintCount === 0);
-                checkBtn.classList.toggle('opacity-50', checkCount === 0);
-            }
-
-            function showToast(message, type = 'success') {
-                const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500'};
-                const toast = document.createElement('div');
-                toast.textContent = message;
-                toast.className = `fixed top-5 left-1/2 -translate-x-1/2 ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-500 z-50`;
-                document.body.appendChild(toast);
-                setTimeout(() => {
-                    toast.classList.add('opacity-0');
-                    setTimeout(() => toast.remove(), 500);
-                }, 2000);
-            }
-            
-            // --- 事件處理 ---
-            function handleCellClick(event) {
-                if (selectedCell) selectedCell.classList.remove('selected');
-                selectedCell = event.currentTarget;
-                selectedCell.classList.add('selected');
-            }
-
-            function handleNumberInput(num) {
-                if (!selectedCell) return;
-                const r = parseInt(selectedCell.dataset.row), c = parseInt(selectedCell.dataset.col);
-                if (initialBoard[r][c] !== 0) return;
-                if (isNotesMode) {
-                    if (num === 0) notes[r][c].clear();
-                    else notes[r][c].has(num) ? notes[r][c].delete(num) : notes[r][c].add(num);
-                } else {
-                    board[r][c] = num;
-                    notes[r][c].clear();
-                    if (num !== 0) checkWinCondition();
-                }
-                renderBoard();
-                const newSelectedCell = grid.querySelector(`[data-row='${r}'][data-col='${c}']`);
-                if (newSelectedCell) {
-                    selectedCell = newSelectedCell;
-                    selectedCell.classList.add('selected');
-                }
-            }
-
-            function useHint() {
-                if (hintCount <= 0) return;
-                let emptyCells = [];
-                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (board[r][c] === 0) emptyCells.push({ r, c });
-                if (emptyCells.length > 0) {
-                    const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-                    board[r][c] = solution[r][c];
-                    initialBoard[r][c] = solution[r][c];
-                    notes[r][c].clear();
-                    if (!gmModeActive) hintCount--;
-                    updateCounters(); renderBoard(); checkWinCondition();
-                }
-            }
-
-            function useCheck() {
-                if (checkCount <= 0) return;
-                document.querySelectorAll('.sudoku-cell.error-num').forEach(cell => cell.classList.remove('error-num'));
-                let incorrectFound = false;
-                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
-                    if (board[r][c] !== 0 && initialBoard[r][c] === 0 && board[r][c] !== solution[r][c]) {
-                        grid.querySelector(`[data-row='${r}'][data-col='${c}']`).classList.add('error-num');
-                        incorrectFound = true;
-                    }
-                }
-                if (!gmModeActive) checkCount--;
-                updateCounters();
-                if (!incorrectFound) showToast('目前沒有發現錯誤！', 'success');
-            }
-
-            function checkWinCondition() {
-                for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (board[r][c] === 0 || board[r][c] !== solution[r][c]) return false;
-                playWinSound();
-                winModal.classList.remove('hidden');
-                winModal.querySelector('div').classList.add('scale-100');
-            }
-            
-            function handleSave() {
-                const notesForSaving = notes.map(row => row.map(cellNotesSet => Array.from(cellNotesSet)));
-                const gameState = { board, solution, initialBoard, notes: notesForSaving, hintCount, checkCount, currentDifficulty, gmModeActive };
-                localStorage.setItem('sudokuSaveData', JSON.stringify(gameState));
-                showToast('遊戲已儲存！', 'info');
-            }
-
-            function handleLoad() {
-                const savedData = localStorage.getItem('sudokuSaveData');
-                if (savedData) {
-                    const loadedData = JSON.parse(savedData);
-                    Object.assign(window, { ...loadedData });
-                    notes = loadedData.notes.map(row => row.map(cellNotesArray => new Set(cellNotesArray)));
-                    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.difficulty === currentDifficulty));
-                    if(gmModeActive) {
-                        gmBtn.textContent = "一鍵勝利";
-                        gmBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'px-4');
-                    }
-                    updateCounters(); renderBoard();
-                    showToast('遊戲已讀取！', 'info');
-                } else { showToast('找不到儲存的遊戲。', 'error'); }
-            }
-
-            // --- 綁定事件監聽器 ---
-            newGameBtn.addEventListener('click', () => showConfirmModal('您確定要開始新遊戲嗎？目前的進度將會遺失。', newGame));
-            modalNewGameBtn.addEventListener('click', newGame);
-            hintBtn.addEventListener('click', useHint);
-            checkBtn.addEventListener('click', useCheck);
-            saveBtn.addEventListener('click', handleSave);
-            loadBtn.addEventListener('click', () => {
-                 if (localStorage.getItem('sudokuSaveData')) showConfirmModal('確定要讀取上次儲存的遊戲嗎？目前的進度將會遺失。', handleLoad);
-                 else showToast('找不到儲存的遊戲。', 'error');
-            });
-            notesBtn.addEventListener('click', () => {
-                isNotesMode = !isNotesMode;
-                notesBtn.classList.toggle('active');
-                notesBtn.textContent = isNotesMode ? '筆記中...' : '筆記';
-            });
-            eraseBtn.addEventListener('click', () => handleNumberInput(0));
-            confirmOkBtn.addEventListener('click', () => { if (typeof confirmCallback === 'function') confirmCallback(); hideConfirmModal(); });
-            confirmCancelBtn.addEventListener('click', hideConfirmModal);
-            confirmModal.addEventListener('click', (e) => { if(e.target === confirmModal) hideConfirmModal(); });
-
-            difficultySelector.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON') {
-                    const selectedDifficulty = e.target.dataset.difficulty;
-                    if (selectedDifficulty !== currentDifficulty) {
-                         const difficultyText = e.target.textContent;
-                         showConfirmModal(`您確定要切換到「${difficultyText}」難度並開始新遊戲嗎？`, () => {
-                            currentDifficulty = selectedDifficulty;
-                            document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
-                            e.target.classList.add('active');
-                            newGame();
-                        });
-                    }
-                }
-            });
-
-            gmBtn.addEventListener('click', () => {
-                if (gmModeActive) {
-                    board = JSON.parse(JSON.stringify(solution));
-                    renderBoard(); checkWinCondition();
-                } else {
-                    gmPasswordInput.value = ''; gmErrorMsg.textContent = '';
-                    gmModal.classList.remove('hidden'); gmPasswordInput.focus();
-                }
-            });
-            gmSubmitBtn.addEventListener('click', () => {
-                if (gmPasswordInput.value === "67712393") {
-                    gmModeActive = true; hintCount = 999; checkCount = 999; updateCounters();
-                    gmBtn.textContent = "一鍵勝利";
-                    gmBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
-                    gmBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'px-4');
-                    gmModal.classList.add('hidden');
-                } else {
-                    gmErrorMsg.textContent = "密碼錯誤！"; gmPasswordInput.value = ''; gmPasswordInput.focus();
-                }
-            });
-            gmCancelBtn.addEventListener('click', () => gmModal.classList.add('hidden'));
-            gmModal.addEventListener('click', (e) => { if (e.target === gmModal) gmModal.classList.add('hidden'); });
-            gmPasswordInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') gmSubmitBtn.click(); });
-
-            // --- 遊戲初始化 ---
-            newGame();
-            renderNumberPad();
-        });
-    </script>
 </body>
 </html>
-
 
